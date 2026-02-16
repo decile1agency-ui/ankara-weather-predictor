@@ -178,16 +178,15 @@ def parse_and_engineer_features(raw_path):
     daily_max = df.groupby('date')['tmpc'].max().reset_index()
     daily_max.columns = ['date', 'max_temp']
 
-    # All timestamps are UTC (Zulu). Ankara = UTC+3.
-    # Morning window: 04-08 UTC = 07-11 local Ankara time
-    # This captures early/mid morning before peak heating (~12-14 UTC / 15-17 local)
-    MORNING_START_UTC = 4
-    MORNING_END_UTC = 8
+    # Morning features (06-09 local Ankara time)
+    # Data timestamps are UTC, Ankara = UTC+3, so local 06-09 = UTC 03-06
+    MORNING_START_UTC = 3
+    MORNING_END_UTC = 6
     morning = df[(df['hour'] >= MORNING_START_UTC) & (df['hour'] <= MORNING_END_UTC)].copy()
 
     if len(morning) == 0:
         print(f"Warning: No morning observations in {MORNING_START_UTC}-{MORNING_END_UTC} UTC window")
-        morning = df[(df['hour'] >= 3) & (df['hour'] <= 10)].copy()
+        morning = df[(df['hour'] >= 2) & (df['hour'] <= 8)].copy()
 
     morning_agg = morning.groupby('date').agg(
         morning_temp=('tmpc', 'mean'),

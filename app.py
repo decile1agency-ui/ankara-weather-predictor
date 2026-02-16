@@ -13,8 +13,8 @@ from flask import Flask, render_template, request, jsonify
 app = Flask(__name__)
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
-MORNING_START_UTC = 4
-MORNING_END_UTC = 8
+MORNING_START_UTC = 3
+MORNING_END_UTC = 6
 
 FEATURE_COLS = [
     'morning_temp', 'morning_temp_max', 'morning_dewpoint_depression',

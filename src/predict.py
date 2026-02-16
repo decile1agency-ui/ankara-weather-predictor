@@ -2,8 +2,8 @@
 Predict today's max temperature from current METAR observations.
 All times are UTC (Zulu). Ankara local = UTC+3.
 
-Morning window: 04-08 UTC (07-11 local Ankara)
-Peak heating:   12-14 UTC (15-17 local Ankara)
+Morning window: 03-06 UTC (06-09 local Ankara)
+Peak heating:   09-12 UTC (12-15 local Ankara)
 """
 
 import numpy as np
@@ -17,8 +17,9 @@ import sys
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 
 # Morning window in UTC (must match training in metar_fetcher.py)
-MORNING_START_UTC = 4
-MORNING_END_UTC = 8
+# Local Ankara 06-09 = UTC 03-06
+MORNING_START_UTC = 3
+MORNING_END_UTC = 6
 
 FEATURE_COLS = [
     'morning_temp',
