@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTAC Ankara - Max Temperature Predictor</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #2a3a4e;
+    --accent: #3b82f6;
+    --accent-glow: rgba(59,130,246,0.3);
+    --green: #10b981;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #e5e7eb;
+    --text-dim: #9ca3af;
+    --text-bright: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 30px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    color: var(--text-bright);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  header .subtitle {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-top: 8px;
+  }
+
+  .station-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-right: 8px;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .panel-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  textarea {
+    width: 100%;
+    height: 280px;
+    background: var(--bg);
+    color: var(--green);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+  }
+
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+  textarea::placeholder { color: #4a5568; }
+
+  .params-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .param-group label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .param-group input {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text-bright);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    outline: none;
+  }
+
+  .param-group input:focus { border-color: var(--accent); }
+
+  .btn-predict {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-predict:hover { background: #2563eb; box-shadow: 0 0 20px var(--accent-glow); }
+  .btn-predict:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Results */
+  .prediction-hero {
+    text-align: center;
+    padding: 30px 0;
+    display: none;
+  }
+
+  .prediction-hero .value {
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--text-bright);
+    text-shadow: 0 0 30px var(--accent-glow);
+  }
+
+  .prediction-hero .unit { font-size: 1.5rem; color: var(--text-dim); }
+  .prediction-hero .label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 8px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-bright);
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Features table */
+  .features-table {
+    width: 100%;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .features-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .features-table th, .features-table td {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 0.72rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .features-table th {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.6rem;
+  }
+
+  .features-table td:last-child {
+    text-align: right;
+    color: var(--text-bright);
+    font-weight: bold;
+  }
+
+  /* METAR timeline */
+  .metar-timeline {
+    margin-top: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .metar-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-left: 3px solid var(--border);
+    margin-bottom: 4px;
+    font-size: 0.68rem;
+  }
+
+  .metar-entry.in-window { border-left-color: var(--green); background: rgba(16,185,129,0.05); }
+  .metar-entry.outside { border-left-color: var(--border); opacity: 0.5; }
+
+  .metar-time {
+    min-width: 80px;
+    color: var(--text-dim);
+  }
+
+  .metar-temp {
+    min-width: 50px;
+    font-weight: bold;
+    color: var(--text-bright);
+  }
+
+  .metar-badge {
+    font-size: 0.55rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .metar-badge.in { background: rgba(16,185,129,0.2); color: var(--green); }
+  .metar-badge.out { background: rgba(107,114,128,0.2); color: var(--text-dim); }
+
+  /* Model info */
+  .model-info {
+    display: none;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+
+  .model-info span { color: var(--text-bright); font-weight: bold; }
+
+  .warning-bar {
+    display: none;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid var(--orange);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.72rem;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .window-info {
+    text-align: center;
+    padding: 8px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .window-info strong { color: var(--accent); }
+
+  .spinner {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+  }
+
+  .spinner::after {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 10px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .full-width { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span class="station-badge">LTAC</span> Ankara Max Temp Predictor</h1>
+    <div class="subtitle">XGBoost model trained on 5 years of METAR data | Morning window: 04-08Z (07-11 local)</div>
+  </header>
+
+  <div class="grid">
+    <!-- Input Panel -->
+    <div class="panel">
+      <div class="panel-title">METAR Input</div>
+      <textarea id="metarInput" placeholder="Paste METAR observations here (one per line)...
+
+Example:
+METAR LTAC 160720Z 21008KT 9999 SCT040 BKN180 11/M01 Q1013 NOSIG
+METAR LTAC 160650Z 21007KT 9999 SCT040 BKN180 10/M00 Q1013 NOSIG
+METAR LTAC 160550Z VRB02KT CAVOK 07/M00 Q1013 NOSIG"></textarea>
+
+      <div class="params-grid">
+        <div class="param-group">
+          <label>Prev Day Max (C)</label>
+          <input type="number" id="prevDayMax" value="14" step="0.5">
+        </div>
+        <div class="param-group">
+          <label>Prev Morning Temp (C)</label>
+          <input type="number" id="prevMorningTemp" value="5" step="0.5">
+        </div>
+        <div class="param-group">
+          <label>Prev Pressure (hPa)</label>
+          <input type="number" id="prevPressure" value="1014" step="0.5">
+        </div>
+        <div class="param-group">
+          <label>Day of Year</label>
+          <input type="number" id="dayOfYear" value="" min="1" max="366">
+        </div>
+      </div>
+
+      <button class="btn-predict" id="predictBtn" onclick="runPrediction()">Predict Max Temperature</button>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="panel">
+      <div class="panel-title">Prediction Result</div>
+
+      <div class="warning-bar" id="warningBar"></div>
+
+      <div class="prediction-hero" id="predictionHero">
+        <div class="value" id="predValue">--</div>
+        <div class="unit">&deg;C</div>
+        <div class="label">Predicted Daily Maximum Temperature</div>
+      </div>
+
+      <div class="spinner" id="spinner">
+        <br>Analyzing METARs...
+      </div>
+
+      <div class="window-info" id="windowInfo"></div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotal">-</div>
+          <div class="stat-label">Total METARs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statWindow">-</div>
+          <div class="stat-label">In Window</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statOutside">-</div>
+          <div class="stat-label">Outside</div>
+        </div>
+      </div>
+
+      <div class="features-table" id="featuresTable">
+        <table>
+          <thead>
+            <tr><th>Feature</th><th>Value</th></tr>
+          </thead>
+          <tbody id="featuresBody"></tbody>
+        </table>
+      </div>
+
+      <div class="model-info" id="modelInfo"></div>
+    </div>
+
+    <!-- METAR Timeline -->
+    <div class="panel full-width">
+      <div class="panel-title">METAR Timeline (UTC)</div>
+      <div class="metar-timeline" id="metarTimeline"></div>
+      <div id="timelinePlaceholder" style="text-align:center;color:var(--text-dim);font-size:0.75rem;padding:30px;">
+        Paste METARs and click Predict to see the timeline
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-set day of year
+const now = new Date();
+const start = new Date(now.getFullYear(), 0, 0);
+const diff = now - start;
+const oneDay = 1000 * 60 * 60 * 24;
+document.getElementById('dayOfYear').value = Math.floor(diff / oneDay);
+
+async function runPrediction() {
+  const btn = document.getElementById('predictBtn');
+  const spinner = document.getElementById('spinner');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+
+  // Hide previous results
+  document.getElementById('predictionHero').style.display = 'none';
+  document.getElementById('statsGrid').style.display = 'none';
+  document.getElementById('featuresTable').style.display = 'none';
+  document.getElementById('modelInfo').style.display = 'none';
+  document.getElementById('metarTimeline').style.display = 'none';
+  document.getElementById('windowInfo').style.display = 'none';
+  document.getElementById('warningBar').style.display = 'none';
+  document.getElementById('timelinePlaceholder').style.display = 'none';
+
+  const payload = {
+    metars: document.getElementById('metarInput').value,
+    prev_day_max: document.getElementById('prevDayMax').value,
+    prev_morning_temp: document.getElementById('prevMorningTemp').value,
+    prev_pressure: document.getElementById('prevPressure').value,
+    day_of_year: document.getElementById('dayOfYear').value,
+  };
+
+  try {
+    const resp = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await resp.json();
+
+    if (data.error) {
+      document.getElementById('warningBar').textContent = data.error;
+      document.getElementById('warningBar').style.display = 'block';
+      return;
+    }
+
+    // Warning
+    if (data.warning) {
+      document.getElementById('warningBar').textContent = data.warning;
+      document.getElementById('warningBar').style.display = 'block';
+    }
+
+    // Prediction
+    document.getElementById('predValue').textContent = data.prediction.toFixed(1);
+    document.getElementById('predictionHero').style.display = 'block';
+
+    // Window info
+    const wi = document.getElementById('windowInfo');
+    wi.innerHTML = `Morning window: <strong>${data.morning_window}</strong>`;
+    wi.style.display = 'block';
+
+    // Stats
+    document.getElementById('statTotal').textContent = data.metars_total;
+    document.getElementById('statWindow').textContent = data.metars_in_window;
+    document.getElementById('statOutside').textContent = data.metars_outside;
+    document.getElementById('statsGrid').style.display = 'grid';
+
+    // Features
+    const featureLabels = {
+      morning_temp: ['Morning Temp (avg)', 'C'],
+      morning_temp_max: ['Morning Temp (max)', 'C'],
+      morning_dewpoint_depression: ['Dewpoint Depression', 'C'],
+      morning_wind_speed: ['Wind Speed', 'kt'],
+      morning_gust: ['Max Gust', 'kt'],
+      morning_cloud_score: ['Cloud Score', '/8'],
+      morning_cloud_base: ['Cloud Base', 'x100 ft'],
+      morning_precip: ['Precipitation', ''],
+      morning_pressure: ['Pressure', 'hPa'],
+      pressure_tendency: ['Pressure Tendency', 'hPa'],
+      prev_day_max: ['Prev Day Max', 'C'],
+      temp_trend: ['Temp Trend', 'C'],
+      day_of_year: ['Day of Year', ''],
+    };
+
+    const tbody = document.getElementById('featuresBody');
+    tbody.innerHTML = '';
+    for (const [key, [label, unit]] of Object.entries(featureLabels)) {
+      const val = data.features[key];
+      if (val !== undefined) {
+        const tr = document.createElement('tr');
+        const precip = key === 'morning_precip';
+        const displayVal = precip ? (val ? 'Yes' : 'No') : `${val} ${unit}`;
+        tr.innerHTML = `<td>${label}</td><td>${displayVal}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+    document.getElementById('featuresTable').style.display = 'block';
+
+    // Model info
+    const mi = data.model_info;
+    document.getElementById('modelInfo').innerHTML =
+      `Model: XGBoost | MAE: <span>${mi.mae}C</span> | RMSE: <span>${mi.rmse}C</span> | ` +
+      `R2: <span>${mi.r2}</span> | Trained on <span>${mi.samples}</span> days (${mi.date_range})`;
+    document.getElementById('modelInfo').style.display = 'block';
+
+    // Timeline
+    const timeline = document.getElementById('metarTimeline');
+    timeline.innerHTML = '';
+    if (data.metar_details) {
+      data.metar_details.forEach(m => {
+        const div = document.createElement('div');
+        div.className = `metar-entry ${m.in_window ? 'in-window' : 'outside'}`;
+        const hourZ = m.hour_z !== null ? `${String(m.hour_z).padStart(2,'0')}Z` : '??Z';
+        const hourL = m.hour_local !== null ? `${String(m.hour_local).padStart(2,'0')}L` : '??L';
+        const temp = m.temp !== null ? `${m.temp}C` : '--';
+        const badge = m.in_window
+          ? '<span class="metar-badge in">IN WINDOW</span>'
+          : '<span class="metar-badge out">OUTSIDE</span>';
+        div.innerHTML = `
+          <span class="metar-time">${hourZ} (${hourL})</span>
+          <span class="metar-temp">${temp}</span>
+          ${badge}
+          <span style="color:var(--text-dim);font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.raw.substring(0, 60)}...</span>
+        `;
+        timeline.appendChild(div);
+      });
+      timeline.style.display = 'block';
+    }
+
+  } catch (err) {
+    document.getElementById('warningBar').textContent = 'Error: ' + err.message;
+    document.getElementById('warningBar').style.display = 'block';
+  } finally {
+    spinner.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

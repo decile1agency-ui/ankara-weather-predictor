@@ -1,0 +1,17 @@
+{
+  "morning_temp": 12.0,
+  "morning_temp_max": 16.0,
+  "morning_dewpoint_depression": 7.2,
+  "morning_wind_speed": 3.8,
+  "morning_gust": 0.0,
+  "morning_wind_u": 0.0,
+  "morning_wind_v": -0.0684040286651337,
+  "morning_cloud_score": 2.6,
+  "morning_cloud_base": 40.0,
+  "morning_precip": 0.0,
+  "morning_pressure": NaN,
+  "day_of_year": 183.0,
+  "prev_day_max": 18.000000000000004,
+  "pressure_tendency": 0.0,
+  "temp_trend": 3.3306690738754696e-16
+}
